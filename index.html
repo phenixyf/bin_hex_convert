@@ -2,38 +2,221 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>½øÖÆ×ª»»¹¤¾ß</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>äºŒè¿›åˆ¶ / åå…­è¿›åˆ¶è½¬æ¢å·¥å…·</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    main {
+      width: min(720px, 100%);
+      background: #ffffff;
+      border: 1px solid #d7dee8;
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 12px 32px rgba(31, 41, 55, 0.10);
+    }
+
+    h1 {
+      margin: 0 0 22px;
+      font-size: 26px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 150px 96px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    input,
+    select,
+    button {
+      height: 42px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    input,
+    select {
+      border: 1px solid #b8c2d1;
+      padding: 0 12px;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid #8cb4ff;
+      outline-offset: 1px;
+      border-color: #4f83d1;
+    }
+
+    button {
+      border: 0;
+      background: #2563eb;
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    #result {
+      margin-top: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-item {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border: 1px solid #e1e7f0;
+      border-radius: 6px;
+      background: #f9fbfe;
+    }
+
+    .label {
+      color: #4b5563;
+      font-weight: 600;
+    }
+
+    code {
+      word-break: break-all;
+      white-space: pre-wrap;
+      color: #111827;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 15px;
+    }
+
+    .error {
+      padding: 12px 14px;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      background: #fff1f2;
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 22px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .result-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>¶ş½øÖÆ / Ê®½øÖÆ / Ê®Áù½øÖÆ×ª»»¹¤¾ß</h2>
+  <main>
+    <h1>äºŒè¿›åˆ¶ / åå…­è¿›åˆ¶è½¬æ¢å·¥å…·</h1>
 
-  <input id="inputValue" placeholder="ÇëÊäÈëÊı×Ö£¬ÀıÈç 1010 »ò A3">
-  <select id="fromBase">
-    <option value="2">¶ş½øÖÆ</option>
-    <option value="10">Ê®½øÖÆ</option>
-    <option value="16">Ê®Áù½øÖÆ</option>
-  </select>
-  <button onclick="convert()">×ª»»</button>
+    <div class="form-row">
+      <input id="inputValue" placeholder="è¯·è¾“å…¥æ•°å­—ï¼Œä¾‹å¦‚ 1010 æˆ– A3" autocomplete="off">
+      <select id="fromBase">
+        <option value="2">äºŒè¿›åˆ¶</option>
+        <option value="16">åå…­è¿›åˆ¶</option>
+        <option value="10">åè¿›åˆ¶</option>
+      </select>
+      <button type="button" id="convertButton">è½¬æ¢</button>
+    </div>
 
-  <div id="result"></div>
+    <div id="result"></div>
+  </main>
 
   <script>
-    function convert() {
-      const input = document.getElementById("inputValue").value.trim();
-      const fromBase = parseInt(document.getElementById("fromBase").value);
-      const decimal = parseInt(input, fromBase);
+    const inputEl = document.getElementById("inputValue");
+    const fromBaseEl = document.getElementById("fromBase");
+    const resultEl = document.getElementById("result");
+    const convertButton = document.getElementById("convertButton");
 
-      if (isNaN(decimal)) {
-        document.getElementById("result").innerHTML = "ÊäÈë¸ñÊ½²»ÕıÈ·";
+    function normalizeInput(value, base) {
+      let normalized = value.trim().replace(/[\s_]/g, "");
+      if (base === 2) {
+        normalized = normalized.replace(/^0b/i, "");
+      }
+      if (base === 16) {
+        normalized = normalized.replace(/^0x/i, "");
+      }
+      return normalized;
+    }
+
+    function isValid(value, base) {
+      if (!value) {
+        return false;
+      }
+      if (base === 2) {
+        return /^[01]+$/.test(value);
+      }
+      if (base === 10) {
+        return /^\d+$/.test(value);
+      }
+      return /^[0-9a-fA-F]+$/.test(value);
+    }
+
+    function toBigInt(value, base) {
+      if (base === 2) {
+        return BigInt("0b" + value);
+      }
+      if (base === 16) {
+        return BigInt("0x" + value);
+      }
+      return BigInt(value);
+    }
+
+    function renderResult(decimal) {
+      resultEl.innerHTML = `
+        <div class="result-item"><span class="label">äºŒè¿›åˆ¶</span><code>${decimal.toString(2)}</code></div>
+        <div class="result-item"><span class="label">åè¿›åˆ¶</span><code>${decimal.toString(10)}</code></div>
+        <div class="result-item"><span class="label">åå…­è¿›åˆ¶</span><code>${decimal.toString(16).toUpperCase()}</code></div>
+      `;
+    }
+
+    function convert() {
+      const fromBase = Number(fromBaseEl.value);
+      const normalized = normalizeInput(inputEl.value, fromBase);
+
+      if (!isValid(normalized, fromBase)) {
+        resultEl.innerHTML = `<div class="error">è¾“å…¥æ ¼å¼ä¸æ­£ç¡®</div>`;
         return;
       }
 
-      document.getElementById("result").innerHTML = `
-        <p>¶ş½øÖÆ£º${decimal.toString(2)}</p>
-        <p>Ê®½øÖÆ£º${decimal.toString(10)}</p>
-        <p>Ê®Áù½øÖÆ£º${decimal.toString(16).toUpperCase()}</p>
-      `;
+      renderResult(toBigInt(normalized, fromBase));
     }
+
+    convertButton.addEventListener("click", convert);
+    inputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        convert();
+      }
+    });
   </script>
 </body>
 </html>
