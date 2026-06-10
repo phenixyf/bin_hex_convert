@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>进制转换工具</title>
+</head>
+<body>
+  <h2>二进制 / 十进制 / 十六进制转换工具</h2>
+
+  <input id="inputValue" placeholder="请输入数字，例如 1010 或 A3">
+  <select id="fromBase">
+    <option value="2">二进制</option>
+    <option value="10">十进制</option>
+    <option value="16">十六进制</option>
+  </select>
+  <button onclick="convert()">转换</button>
+
+  <div id="result"></div>
+
+  <script>
+    function convert() {
+      const input = document.getElementById("inputValue").value.trim();
+      const fromBase = parseInt(document.getElementById("fromBase").value);
+      const decimal = parseInt(input, fromBase);
+
+      if (isNaN(decimal)) {
+        document.getElementById("result").innerHTML = "输入格式不正确";
+        return;
+      }
+
+      document.getElementById("result").innerHTML = `
+        <p>二进制：${decimal.toString(2)}</p>
+        <p>十进制：${decimal.toString(10)}</p>
+        <p>十六进制：${decimal.toString(16).toUpperCase()}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
