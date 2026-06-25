@@ -24,9 +24,15 @@
       --danger: #fb7185;
     }
 
+    html,
     body {
+      width: 100%;
+      height: 100%;
       margin: 0;
-      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    body {
       background:
         radial-gradient(circle at 12% 0%, rgba(52, 211, 153, 0.11), transparent 30%),
         radial-gradient(circle at 88% 12%, rgba(96, 165, 250, 0.10), transparent 28%),
@@ -34,25 +40,25 @@
       color: var(--text);
       font-family: Consolas, "Courier New", monospace;
       font-size: 13px;
-      padding: 14px;
+    }
+
+    .viewport {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      padding: 12px;
     }
 
     .page {
-      width: min(1440px, 100%);
-      margin: 0 auto;
-    }
-
-    .toolbar {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      margin-bottom: 12px;
+      width: 1440px;
+      transform-origin: top left;
+      will-change: transform;
     }
 
     .app {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
       align-items: start;
     }
 
@@ -67,7 +73,7 @@
 
     .panel-header {
       display: grid;
-      grid-template-columns: 84px 1fr;
+      grid-template-columns: 84px 1fr 82px;
       gap: 10px;
       align-items: center;
       margin-bottom: 10px;
@@ -99,29 +105,15 @@
       border: 1px solid #263241;
       border-radius: 7px;
       background: linear-gradient(180deg, #101720 0%, #0d131b 100%);
-      overflow-x: auto;
+      overflow: hidden;
       box-shadow: inset 0 1px 8px rgba(0, 0, 0, 0.22);
-    }
-
-    .bit-board::-webkit-scrollbar {
-      height: 8px;
-    }
-
-    .bit-board::-webkit-scrollbar-thumb {
-      background: #304052;
-      border-radius: 999px;
-    }
-
-    .bit-board::-webkit-scrollbar-track {
-      background: #0b1017;
     }
 
     .bit-row {
       display: grid;
       grid-template-columns: repeat(4, max-content);
       gap: 28px;
-      width: max-content;
-      min-width: 100%;
+      width: 100%;
       justify-content: space-between;
       align-items: start;
     }
@@ -217,6 +209,18 @@
       border-color: #2f6b59;
     }
 
+    .clear-panel-button {
+      width: 82px;
+      color: #fecdd3;
+      border-color: #6a3444;
+      background: linear-gradient(180deg, #2a1720 0%, #1c1117 100%);
+    }
+
+    .clear-panel-button:hover {
+      border-color: #a34d64;
+      background: linear-gradient(180deg, #3a1c28 0%, #24131a 100%);
+    }
+
     .value-input {
       width: 100%;
       min-width: 0;
@@ -243,45 +247,13 @@
       background: #26131a;
       color: #fecdd3;
     }
-
-    #clearButton {
-      width: 100px;
-      color: #fecdd3;
-      border-color: #6a3444;
-      background: linear-gradient(180deg, #2a1720 0%, #1c1117 100%);
-    }
-
-    #clearButton:hover {
-      border-color: #a34d64;
-      background: linear-gradient(180deg, #3a1c28 0%, #24131a 100%);
-    }
-
-    @media (max-width: 700px) {
-      body {
-        padding: 10px;
-      }
-
-      .app {
-        grid-template-columns: 1fr;
-      }
-
-      .panel-header,
-      .value-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .value-row.bin-row {
-        grid-column: auto;
-      }
-    }
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="toolbar">
-      <button type="button" id="clearButton">Clear</button>
+  <div class="viewport" id="viewport">
+    <div class="page" id="page">
+      <div class="app" id="app"></div>
     </div>
-    <div class="app" id="app"></div>
   </div>
 
   <script>
@@ -289,6 +261,8 @@
     const BIT_WIDTH = 32;
     const NIBBLE_WIDTH = 4;
     const MAX_VALUE = (1n << BigInt(BIT_WIDTH)) - 1n;
+    const viewport = document.getElementById("viewport");
+    const page = document.getElementById("page");
     const app = document.getElementById("app");
     const panels = [];
 
@@ -338,6 +312,18 @@
         return null;
       }
       return value;
+    }
+
+    function fitPageToViewport() {
+      page.style.transform = "none";
+      const viewportWidth = viewport.clientWidth;
+      const viewportHeight = viewport.clientHeight;
+      const contentWidth = page.offsetWidth;
+      const contentHeight = page.offsetHeight;
+      const scale = Math.min(viewportWidth / contentWidth, viewportHeight / contentHeight, 1.35);
+      const x = Math.max(0, (viewportWidth - contentWidth * scale) / 2);
+      const y = Math.max(0, (viewportHeight - contentHeight * scale) / 2);
+      page.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     }
 
     function getPanelValueFromBits(panel) {
@@ -449,7 +435,12 @@
       regName.className = "reg-name";
       regName.value = "Reg_Name";
       regName.autocomplete = "off";
-      header.append(panelIndex, regName);
+      const clearButton = document.createElement("button");
+      clearButton.type = "button";
+      clearButton.className = "clear-panel-button";
+      clearButton.dataset.clear = "true";
+      clearButton.textContent = "Clear";
+      header.append(panelIndex, regName, clearButton);
 
       const valueGrid = document.createElement("div");
       valueGrid.className = "value-grid";
@@ -468,6 +459,12 @@
       });
 
       panel.addEventListener("click", (event) => {
+        const clearButton = event.target.closest("button[data-clear]");
+        if (clearButton) {
+          applyPanelValue(panel, 0n);
+          return;
+        }
+
         const button = event.target.closest("button[data-convert]");
         if (!button) {
           return;
@@ -500,9 +497,8 @@
       applyPanelValue(panel, index === 0 ? 0x00010000n : 0n);
     }
 
-    document.getElementById("clearButton").addEventListener("click", () => {
-      panels.forEach((panel) => applyPanelValue(panel, 0n));
-    });
+    window.addEventListener("resize", fitPageToViewport);
+    requestAnimationFrame(fitPageToViewport);
   </script>
 </body>
 </html>
